@@ -1,13 +1,20 @@
+# Conditional build:
+%bcond_with	doc		# documentation
+
 Summary:	Eclipse Paho MQTT C client
 Name:		paho-mqtt
-Version:	1.1.0
+Version:	1.3.11
 Release:	1
-License:	EPL-1.0 and EDL-1.0
+License:	EPL-2.0 and EDL-1.0
 Group:		Libraries
-Source0:	https://github.com/eclipse/paho.mqtt.c/archive/v1.1.0/%{name}-%{version}.tar.gz
-# Source0-md5:	ec635e5c4487d9bf1a12d00322b74038
+Source0:	https://github.com/eclipse/paho.mqtt.c/archive/v%{version}/%{name}-%{version}.tar.gz
+# Source0-md5:	ce269af51541148c6e6a50f2763757e4
 URL:		http://www.eclipse.org/paho/
 BuildRequires:	cmake >= 3.0
+%if %{with doc}
+BuildRequires:	doxygen
+%endif
+BuildRequires:	openssl-devel
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
@@ -45,19 +52,18 @@ Statyczna biblioteka Eclipse Paho MQTT C client.
 %build
 install -d build
 cd build
-%cmake ..
+%cmake .. \
+	-DPAHO_BUILD_SHARED=TRUE \
+	-DPAHO_HIGH_PERFORMANCE=TRUE \
+	-DPAHO_WITH_SSL=TRUE \
+	%{?with_doc:-DPAHO_BUILD_DOCUMENTATION=TRUE}
+
+%{__make}
 
 %install
 rm -rf $RPM_BUILD_ROOT
 %{__make} -C build install \
 	DESTDIR=$RPM_BUILD_ROOT
-
-# src/CMakeLists.txt needs patching
-# INSTALL( ... LIBRARY DESTINATION lib)
-%if "%{_lib}" != "lib"
-install -d $RPM_BUILD_ROOT%{_libdir}
-mv $RPM_BUILD_ROOT%{_prefix}/lib/* $RPM_BUILD_ROOT%{_libdir}
-%endif
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -70,14 +76,19 @@ rm -rf $RPM_BUILD_ROOT
 %doc README.md CONTRIBUTING.md about.html notice.html
 %attr(755,root,root) %{_libdir}/libpaho-mqtt3c.so.*.*.*
 %ghost %{_libdir}/libpaho-mqtt3c.so.1
+%attr(755,root,root) %{_libdir}/libpaho-mqtt3cs.so.*.*.*
+%ghost %{_libdir}/libpaho-mqtt3cs.so.1
 %attr(755,root,root) %{_libdir}/libpaho-mqtt3a.so.*.*.*
 %ghost %{_libdir}/libpaho-mqtt3a.so.1
+%attr(755,root,root) %{_libdir}/libpaho-mqtt3as.so.*.*.*
+%ghost %{_libdir}/libpaho-mqtt3as.so.1
 
 %files devel
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/MQTTVersion
-%{_includedir}/MQTTAsync.h
-%{_includedir}/MQTTClient.h
-%{_includedir}/MQTTClientPersistence.h
+%{_includedir}/MQTT*.h
 %{_libdir}/libpaho-mqtt3a.so
 %{_libdir}/libpaho-mqtt3c.so
+%{_libdir}/libpaho-mqtt3as.so
+%{_libdir}/libpaho-mqtt3cs.so
+%{_libdir}/cmake/eclipse-paho-mqtt-c
